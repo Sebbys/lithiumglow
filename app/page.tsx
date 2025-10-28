@@ -4,22 +4,30 @@ import { useState, useEffect } from "react"
 import { MenuItemCard } from "@/components/menu-card-item"
 import { ShoppingCart } from "@/components/shopping-cart"
 import { Button } from "@/components/ui/button"
-import { ShoppingCartIcon } from "lucide-react"
-import { getMenuItems } from "@/lib/menu-storage"
+import { ArrowUpRight, ShoppingCartIcon, User } from "lucide-react"
+import { getMenuItems } from "@/lib/actions/menu"
 import { CATEGORIES } from "@/lib/menu-data"
 import type { MenuItem, CartItem } from "@/lib/types"
 import { calculateTotalMacros, calculateTotalPrice } from "@/lib/macro-calculator"
 import Link from "next/link"
 import { toast } from "sonner"
-
+import { UserProfile } from "@/components/UserProfile";
+import {  useSession } from "@/components/SessionProvier";
 export default function HomePage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [cart, setCart] = useState<CartItem[]>([])
   const [cartOpen, setCartOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    setMenuItems(getMenuItems())
+    async function fetchMenuItems() {
+      setLoading(true)
+      const items = await getMenuItems()
+      setMenuItems(items)
+      setLoading(false)
+    }
+    fetchMenuItems()
   }, [])
 
   const filteredItems =
@@ -70,7 +78,8 @@ export default function HomePage() {
   }
 
   const totalCartItems = cart.reduce((sum, item) => sum + item.quantity, 0)
-
+  const { session, isPending } = useSession();
+  
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -81,7 +90,7 @@ export default function HomePage() {
               <h1 className="text-2xl font-bold text-emerald-600">FitBite</h1>
               <p className="text-sm text-muted-foreground">Healthy meals, tracked macros</p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               <Link href="/admin">
                 <Button variant="outline" size="sm">
                   Admin
@@ -91,6 +100,19 @@ export default function HomePage() {
                 <ShoppingCartIcon className="h-4 w-4 mr-2" />
                 Cart ({totalCartItems})
               </Button>
+              {!isPending && (session ? (
+                <UserProfile />
+              ) : (
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/sign-in" className="flex items-center gap-2 group/nav">
+                    <span>Sign In</span>
+                    <div className="relative z-10 size-4 overflow-hidden flex items-center justify-center">
+                      <ArrowUpRight className="-z-10 absolute opacity-100 scale-100 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 group-hover/nav:-translate-y-5 group-hover/nav:translate-x-5 group-hover/nav:opacity-0 group-hover/nav:scale-0 transition-all duration-200" />
+                      <ArrowUpRight className="absolute -z-10 -bottom-4 -left-4 opacity-0 scale-0 group-hover/nav:-translate-y-[15px] group-hover/nav:translate-x-4 group-hover/nav:opacity-100 group-hover/nav:scale-100 transition-all duration-200" />
+                    </div>
+                  </Link>
+                </Button>
+              ))}
             </div>
           </div>
         </div>
@@ -122,7 +144,12 @@ export default function HomePage() {
           <p className="text-muted-foreground">Customize each item and see real-time macro adjustments.</p>
         </div>
 
-        {filteredItems.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-emerald-600 border-r-transparent"></div>
+            <p className="text-muted-foreground mt-4">Loading menu items...</p>
+          </div>
+        ) : filteredItems.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">No items found in this category.</p>
           </div>
