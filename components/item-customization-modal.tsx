@@ -12,6 +12,7 @@ import { calculateTotalMacros, calculateTotalPrice } from "@/lib/macro-calculato
 import { Separator } from "@/components/ui/separator"
 import { Plus, Minus } from "lucide-react"
 import Image from "next/image"
+import { formatIDR } from "@/lib/utils"
 
 interface ItemCustomizationModalProps {
   item: MenuItem | null
@@ -195,7 +196,7 @@ export function ItemCustomizationModal({ item, open, onClose, onAddToCart }: Ite
                       <Label htmlFor={extra.name} className="flex-1 cursor-pointer">
                         {extra.name}
                       </Label>
-                      {extra.price && <span className="font-semibold text-emerald-600">+${extra.price.toFixed(2)}</span>}
+                      {extra.price && <span className="font-semibold text-emerald-600">+{formatIDR(extra.price)}</span>}
                       <div className="flex gap-1 text-xs">
                         {extra.macroAdjustment?.protein !== 0 && (
                           <Badge variant="outline" className="text-emerald-600">
@@ -242,7 +243,7 @@ export function ItemCustomizationModal({ item, open, onClose, onAddToCart }: Ite
               </div>
             </div>
             <Button onClick={handleAddToCart} size="lg" className="bg-emerald-600 hover:bg-emerald-700">
-              Add to Cart - ${(currentPrice * quantity).toFixed(2)}
+              Add to Cart - {formatIDR(currentPrice * quantity)}
             </Button>
           </div>
         </div>

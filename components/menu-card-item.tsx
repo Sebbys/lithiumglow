@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Plus, Minus } from "lucide-react"
 import Image from "next/image"
 import { calculateTotalMacros, calculateTotalPrice } from "@/lib/macro-calculator"
+import { formatIDR } from "@/lib/utils"
 
 interface MenuItemCardProps {
   item: MenuItem
@@ -124,7 +125,7 @@ export function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
       <CardContent className="p-4 space-y-4 flex flex-col flex-1">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold text-lg leading-tight text-balance">{item.name}</h3>
-          <span className="font-bold text-lg text-emerald-600 shrink-0">${currentPrice.toFixed(2)}</span>
+          <span className="font-bold text-lg text-emerald-600 shrink-0">{formatIDR(currentPrice)}</span>
         </div>
 
         <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
@@ -180,7 +181,7 @@ export function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
                       return (
                         <div className="flex items-center gap-2 mt-1.5 text-xs">
                           {selectedChoice.price && (
-                            <span className="font-semibold text-emerald-600">+${selectedChoice.price.toFixed(2)}</span>
+                            <span className="font-semibold text-emerald-600">+{formatIDR(selectedChoice.price)}</span>
                           )}
                           {selectedChoice.macroAdjustment.protein !== 0 && (
                             <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 text-emerald-600">
@@ -283,7 +284,7 @@ export function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
                             <div className="flex items-center gap-2">
                               {displayPrice > 0 && currentQty > 0 && (
                                 <span className="text-sm font-semibold text-emerald-600">
-                                  +${(displayPrice * currentQty).toFixed(2)}
+                                  +{formatIDR(displayPrice * currentQty)}
                                 </span>
                               )}
                               {currentQty > 0 && (
@@ -328,7 +329,7 @@ export function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
                           {extra.name}
                         </Label>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-emerald-600">+${displayPrice.toFixed(2)}</span>
+                          <span className="text-xs font-semibold text-emerald-600">+{formatIDR(displayPrice)}</span>
                           <div className="flex gap-1">
                             {displayMacros.protein !== 0 && (
                               <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 text-emerald-600">
@@ -378,7 +379,7 @@ export function MenuItemCard({ item, onAddToCart }: MenuItemCardProps) {
             </Button>
           </div>
           <Button onClick={handleAddToCart} size="sm" className="bg-emerald-600 hover:bg-emerald-700 flex-1">
-            Add ${(currentPrice * quantity).toFixed(2)}
+            Add {formatIDR(currentPrice * quantity)}
           </Button>
         </div>
       </CardContent>

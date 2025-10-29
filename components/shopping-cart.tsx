@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Trash2, ShoppingBag } from "lucide-react"
+import { formatIDR } from "@/lib/utils"
 
 interface ShoppingCartProps {
   cart: CartItem[]
@@ -63,7 +64,7 @@ export function ShoppingCart({ cart, open, onClose, onRemoveItem, onCheckout }: 
                       </div>
                       <div className="flex items-start gap-2">
                         <span className="font-bold text-emerald-600">
-                          ${(item.totalPrice * item.quantity).toFixed(2)}
+                          {formatIDR(item.totalPrice * item.quantity)}
                         </span>
                         <Button
                           variant="ghost"
@@ -148,7 +149,7 @@ export function ShoppingCart({ cart, open, onClose, onRemoveItem, onCheckout }: 
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total</p>
-                  <p className="text-2xl font-bold">${totalPrice.toFixed(2)}</p>
+                  <p className="text-2xl font-bold">{formatIDR(totalPrice)}</p>
                 </div>
                 <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700" onClick={onCheckout}>
                   Checkout
