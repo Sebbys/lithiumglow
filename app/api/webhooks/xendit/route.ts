@@ -48,7 +48,22 @@ export async function POST(req: NextRequest) {
     })
 
     if (!existingOrder) {
-      console.error(`Order ${orderId} not found in database`)
+      // Check if this is a test webhook from Xendit dashboard
+      const isTestWebhook = orderId.includes('test') || 
+                           orderId.includes('invoice_') || 
+                           orderId.length < 20
+      
+      if (isTestWebhook) {
+        console.warn(`⚠️ Test webhook received with external_id: ${orderId} (order not found - this is expected for Xendit dashboard tests)`)
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Test webhook received successfully',
+          note: 'This appears to be a test webhook from Xendit dashboard. Order not found in database, which is expected.',
+          orderId 
+        }, { status: 200 })
+      }
+      
+      console.error(`❌ Order ${orderId} not found in database`)
       // Return 200 to prevent Xendit from retrying, but log the error
       return NextResponse.json({ 
         success: false, 
