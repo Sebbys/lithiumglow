@@ -124,23 +124,54 @@ export const menuItem = pgTable("menu_item", {
 // Order Tables
 export const order = pgTable("order", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
+  orderNumber: text("order_number").notNull().unique(), // Human-readable: ORD-001
+  userId: uuid("user_id").references(() => user.id, { onDelete: "set null" }), // Nullable for guest orders
+  
+  // Customer Info (for guest orders)
+  customerName: text("customer_name"),
+  customerEmail: text("customer_email"),
+  customerPhone: text("customer_phone"),
+  
+  // Order Details
   status: text("status").notNull().default("pending"), // pending, confirmed, preparing, ready, completed, cancelled
+  orderType: text("order_type").notNull().default("pickup"), // pickup, dine-in, delivery
+  tableNumber: text("table_number"), // For dine-in orders
+  
+  // Payment
+  paymentStatus: text("payment_status").notNull().default("pending"), // pending, paid, failed, refunded
+  paymentMethod: text("payment_method"), // xendit, cash, card
+  xenditInvoiceId: text("xendit_invoice_id"),
+  xenditInvoiceUrl: text("xendit_invoice_url"),
+  
+  // Pricing
+  subtotal: real("subtotal").notNull(),
+  tax: real("tax").notNull().default(0),
+  discount: real("discount").notNull().default(0),
   totalPrice: real("total_price").notNull(),
+  
+  // Nutrition totals
   totalMacros: jsonb("total_macros").notNull().$type<{
     protein: number;
     carbs: number;
     fats: number;
     calories: number;
   }>(),
+  
+  // Notes & Instructions
+  specialInstructions: text("special_instructions"),
   notes: text("notes"),
+  
+  // Timestamps
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
+  confirmedAt: timestamp("confirmed_at"),
+  preparingAt: timestamp("preparing_at"),
+  readyAt: timestamp("ready_at"),
+  completedAt: timestamp("completed_at"),
+  cancelledAt: timestamp("cancelled_at"),
 });
 
 export const orderItem = pgTable("order_item", {

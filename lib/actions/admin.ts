@@ -8,9 +8,8 @@ import { revalidatePath } from "next/cache"
 
 export async function createMenuItem(data: Omit<MenuItem, "id">): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    const id = Date.now().toString()
-    await db.insert(menuItem).values({
-      id,
+    // Let the database generate the UUID automatically (defaultRandom())
+    const [inserted] = await db.insert(menuItem).values({
       name: data.name,
       description: data.description,
       price: data.price,
@@ -19,12 +18,12 @@ export async function createMenuItem(data: Omit<MenuItem, "id">): Promise<{ succ
       baseMacros: data.baseMacros,
       customOptions: data.customOptions || null,
       extraOptions: data.extraOptions || null,
-    })
+    }).returning({ id: menuItem.id })
     
     revalidatePath("/")
     revalidatePath("/admin")
     
-    return { success: true, id }
+    return { success: true, id: inserted.id }
   } catch (error) {
     console.error("Error creating menu item:", error)
     return { success: false, error: "Failed to create menu item" }

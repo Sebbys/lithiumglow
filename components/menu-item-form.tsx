@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Plus, Trash2 } from "lucide-react"
-import { addMenuItem, updateMenuItem } from "@/lib/menu-storage"
+import { createMenuItem, updateMenuItem } from "@/lib/actions/admin"
 import { toast } from "sonner"
 import { CATEGORIES } from "@/lib/menu-data"
 
@@ -21,9 +21,11 @@ interface MenuItemFormProps {
   item: MenuItem | null
   open: boolean
   onClose: () => void
+  onSave: () => void
 }
 
-export function MenuItemForm({ item, open, onClose }: MenuItemFormProps) {
+export function MenuItemForm({ item, open, onClose, onSave }: MenuItemFormProps) {
+  const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState<Partial<MenuItem>>({
     name: "",
     description: "",
@@ -34,6 +36,19 @@ export function MenuItemForm({ item, open, onClose }: MenuItemFormProps) {
     customOptions: [],
     extraOptions: [],
   })
+
+  // Auto-calculate calories using formula: (P × 4) + (C × 4) + (F × 9)
+  const calculateCalories = (protein: number, carbs: number, fats: number): number => {
+    return Math.round((protein * 4) + (carbs * 4) + (fats * 9))
+  }
+
+  // Update macros with auto-calculated calories
+  const updateMacros = (field: 'protein' | 'carbs' | 'fats', value: number) => {
+    const newMacros = { ...formData.baseMacros! }
+    newMacros[field] = value
+    newMacros.calories = calculateCalories(newMacros.protein, newMacros.carbs, newMacros.fats)
+    setFormData({ ...formData, baseMacros: newMacros })
+  }
 
   useEffect(() => {
     if (item && open) {
@@ -52,7 +67,7 @@ export function MenuItemForm({ item, open, onClose }: MenuItemFormProps) {
     }
   }, [item, open])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!formData.name || !formData.description || !formData.category) {
@@ -63,8 +78,9 @@ export function MenuItemForm({ item, open, onClose }: MenuItemFormProps) {
       return
     }
 
-    const menuItem: MenuItem = {
-      id: item?.id || Date.now().toString(),
+    setSaving(true)
+
+    const menuItemData = {
       name: formData.name,
       description: formData.description,
       price: formData.price || 0,
@@ -75,15 +91,32 @@ export function MenuItemForm({ item, open, onClose }: MenuItemFormProps) {
       extraOptions: formData.extraOptions,
     }
 
-    if (item) {
-      updateMenuItem(item.id, menuItem)
-      toast.success("Item updated", { description: "Menu item has been updated successfully." })
-    } else {
-      addMenuItem(menuItem)
-      toast.success("Item added", { description: "New menu item has been added successfully." })
+    try {
+      if (item) {
+        // Update existing item
+        const result = await updateMenuItem(item.id, { id: item.id, ...menuItemData } as MenuItem)
+        if (result.success) {
+          toast.success("Item updated", { description: "Menu item has been updated successfully." })
+          onSave() // Call onSave to refresh data and close
+        } else {
+          toast.error("Update failed", { description: result.error || "Failed to update menu item" })
+        }
+      } else {
+        // Create new item
+        const result = await createMenuItem(menuItemData as Omit<MenuItem, "id">)
+        if (result.success) {
+          toast.success("Item added", { description: "New menu item has been added successfully." })
+          onSave() // Call onSave to refresh data and close
+        } else {
+          toast.error("Add failed", { description: result.error || "Failed to add menu item" })
+        }
+      }
+    } catch (error) {
+      console.error("Error saving menu item:", error)
+      toast.error("Error", { description: "An unexpected error occurred" })
+    } finally {
+      setSaving(false)
     }
-
-    onClose()
   }
 
   const addCustomOption = () => {
@@ -139,10 +172,15 @@ export function MenuItemForm({ item, open, onClose }: MenuItemFormProps) {
       if (field === "label") {
         updated[optionIndex].choices[choiceIndex].label = value
       } else {
-        updated[optionIndex].choices[choiceIndex].macroAdjustment = {
-          ...updated[optionIndex].choices[choiceIndex].macroAdjustment,
-          [field]: Number(value) || 0,
+        const macroAdj = updated[optionIndex].choices[choiceIndex].macroAdjustment
+        macroAdj[field as keyof typeof macroAdj] = Number(value) || 0
+        
+        // Auto-calculate calories when P, C, or F changes
+        if (field !== 'calories') {
+          macroAdj.calories = calculateCalories(macroAdj.protein, macroAdj.carbs, macroAdj.fats)
         }
+        
+        updated[optionIndex].choices[choiceIndex].macroAdjustment = { ...macroAdj }
       }
       return { ...prev, customOptions: updated }
     })
@@ -173,13 +211,15 @@ export function MenuItemForm({ item, open, onClose }: MenuItemFormProps) {
       } else if (field === "price") {
         updated[index].price = Number(value) || 0
       } else {
-        updated[index].macroAdjustment = {
-          protein: updated[index].macroAdjustment?.protein || 0,
-          carbs: updated[index].macroAdjustment?.carbs || 0,
-          fats: updated[index].macroAdjustment?.fats || 0,
-          calories: updated[index].macroAdjustment?.calories || 0,
-          [field]: Number(value) || 0,
+        const macroAdj = updated[index].macroAdjustment || { protein: 0, carbs: 0, fats: 0, calories: 0 }
+        macroAdj[field as keyof typeof macroAdj] = Number(value) || 0
+        
+        // Auto-calculate calories when P, C, or F changes
+        if (field !== 'calories') {
+          macroAdj.calories = calculateCalories(macroAdj.protein, macroAdj.carbs, macroAdj.fats)
         }
+        
+        updated[index].macroAdjustment = { ...macroAdj }
       }
       return { ...prev, extraOptions: updated }
     })
@@ -272,12 +312,7 @@ export function MenuItemForm({ item, open, onClose }: MenuItemFormProps) {
                     id="protein"
                     type="number"
                     value={formData.baseMacros?.protein}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        baseMacros: { ...formData.baseMacros!, protein: Number(e.target.value) },
-                      })
-                    }
+                    onChange={(e) => updateMacros('protein', Number(e.target.value))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -286,12 +321,7 @@ export function MenuItemForm({ item, open, onClose }: MenuItemFormProps) {
                     id="carbs"
                     type="number"
                     value={formData.baseMacros?.carbs}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        baseMacros: { ...formData.baseMacros!, carbs: Number(e.target.value) },
-                      })
-                    }
+                    onChange={(e) => updateMacros('carbs', Number(e.target.value))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -300,27 +330,22 @@ export function MenuItemForm({ item, open, onClose }: MenuItemFormProps) {
                     id="fats"
                     type="number"
                     value={formData.baseMacros?.fats}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        baseMacros: { ...formData.baseMacros!, fats: Number(e.target.value) },
-                      })
-                    }
+                    onChange={(e) => updateMacros('fats', Number(e.target.value))}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="calories">Calories</Label>
+                  <Label htmlFor="calories">Calories (Auto-calculated)</Label>
                   <Input
                     id="calories"
                     type="number"
                     value={formData.baseMacros?.calories}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        baseMacros: { ...formData.baseMacros!, calories: Number(e.target.value) },
-                      })
-                    }
+                    disabled
+                    className="bg-muted"
+                    title="Auto-calculated: (P × 4) + (C × 4) + (F × 9)"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Formula: (P × 4) + (C × 4) + (F × 9) = {formData.baseMacros?.calories} cal
+                  </p>
                 </div>
               </div>
             </div>
@@ -469,11 +494,11 @@ export function MenuItemForm({ item, open, onClose }: MenuItemFormProps) {
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">
-                {item ? "Update Item" : "Add Item"}
+              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700" disabled={saving}>
+                {saving ? "Saving..." : item ? "Update Item" : "Add Item"}
               </Button>
             </div>
           </form>

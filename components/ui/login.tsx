@@ -38,7 +38,7 @@ const router = useRouter();
     try {
       await SignIn(values.email, values.password, );
       toast.success("Login Successful");
-      router.push("/");
+      router.push("/dev");
     } catch (error) {
       toast("Error logging in");
     } finally {
