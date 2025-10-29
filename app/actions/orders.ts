@@ -134,6 +134,7 @@ export async function createOrder(data: CreateOrderData): Promise<{
         const { Invoice } = xendit
         
         // Create invoice
+        const baseUrl = process.env.BETTER_AUTH_URL?.replace(/\/$/, '') || ''
         const invoice = await Invoice.createInvoice({
           data: {
             externalId: newOrder.id,
@@ -142,8 +143,8 @@ export async function createOrder(data: CreateOrderData): Promise<{
             description: `Order ${orderNumber} - FitBite`,
             invoiceDuration: 86400, // 24 hours
             currency: 'IDR',
-            successRedirectUrl: `${process.env.BETTER_AUTH_URL}/orders/${newOrder.id}/success`,
-            failureRedirectUrl: `${process.env.BETTER_AUTH_URL}/orders/${newOrder.id}/failed`,
+            successRedirectUrl: `${baseUrl}/orders/${newOrder.id}/success`,
+            failureRedirectUrl: `${baseUrl}/orders/${newOrder.id}/failed`,
           }
         })
 
