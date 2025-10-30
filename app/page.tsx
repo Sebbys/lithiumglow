@@ -1,6 +1,5 @@
 import { Suspense } from 'react'
-import { getMenuItems } from '@/lib/data'
-import { MenuList } from '@/components/menu-list'
+import MenuServerCached from '@/components/MenuServerCached'
 import { Button } from '@/components/ui/button'
 import { ShoppingCartIcon } from 'lucide-react'
 import Link from 'next/link'
@@ -61,17 +60,11 @@ export default async function HomePage() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Suspense fallback={<MenuSkeleton />}>
-          <MenuContent />
+          <MenuServerCached />
         </Suspense>
       </main>
     </div>
   )
 }
 
-// Separate async component for menu content
-async function MenuContent() {
-  // This fetch is automatically cached by React and deduplicated
-  const menuItems = await getMenuItems()
-
-  return <MenuList initialItems={menuItems} />
-}
+// MenuServerCached now handles fetching and caching the menu server-side.
