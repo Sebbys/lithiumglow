@@ -10,7 +10,7 @@ import { formatIDR } from '@/lib/utils'
 
 interface CheckoutItemsProps {
   items: CartItem[]
-  verifiedItems: any[]
+  verifiedItems: Array<{ priceMismatch?: boolean; totalPrice?: number }>
   onRemoveItem: (index: number) => void
 }
 

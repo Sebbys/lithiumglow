@@ -29,13 +29,26 @@ interface Order {
 export function OrdersContent() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedOrder, setSelectedOrder] = useState<any>(null)
+  type OrderDetails = {
+    order: {
+      id: string
+      orderNumber: string
+      customerName: string | null
+      customerEmail: string | null
+      status: string
+      totalPrice: number
+      paymentStatus: string
+    }
+    items: Array<{
+      menuItemSnapshot: { name: string; description?: string }
+      quantity: number
+      totalPrice: number
+      totalMacros?: { protein: number; carbs: number; fats: number; calories: number }
+    }>
+  } | null
+  const [selectedOrder, setSelectedOrder] = useState<OrderDetails>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [filter, setFilter] = useState<string>('all')
-
-  useEffect(() => {
-    loadOrders()
-  }, [])
 
   const loadOrders = async () => {
     setLoading(true)
@@ -48,8 +61,13 @@ export function OrdersContent() {
     setLoading(false)
   }
 
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
-    const result = await updateOrderStatus(orderId, newStatus as any)
+  useEffect(() => {
+    loadOrders()
+  }, [])
+
+  type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled'
+  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+    const result = await updateOrderStatus(orderId, newStatus)
     if (result.success) {
       toast.success('Order status updated')
       loadOrders()
@@ -61,7 +79,7 @@ export function OrdersContent() {
   const handleViewDetails = async (orderId: string) => {
     const result = await getOrder(orderId)
     if (result.success) {
-      setSelectedOrder(result)
+      setSelectedOrder({ order: result.order as any, items: result.items as any })
       setDetailsOpen(true)
     } else {
       toast.error('Failed to load order details')
@@ -228,7 +246,7 @@ export function OrdersContent() {
                     <TableCell>
                       <Select
                         value={order.status}
-                        onValueChange={(value) => handleStatusChange(order.id, value)}
+                        onValueChange={(value) => handleStatusChange(order.id, value as OrderStatus)}
                       >
                         <SelectTrigger className="w-[130px]">
                           <SelectValue />

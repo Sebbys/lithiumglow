@@ -2,7 +2,7 @@
 
 import { useSession as useBetterAuthSession } from "@/lib/auth-client";
 import type { Session, User } from "better-auth";
-import { ReactNode, createContext, useContext, useMemo, useRef } from "react";
+import { ReactNode, createContext, useContext, useEffect, useMemo, useState } from "react";
 
 type SessionData = {
   user: User;
@@ -23,20 +23,23 @@ interface SessionProviderProps {
 
 export function SessionProvider({ children, initialSession }: SessionProviderProps) {
   const betterAuthSession = useBetterAuthSession();
-  const lastKnownSessionRef = useRef<SessionData>(initialSession ?? null);
+  const [lastKnownSession, setLastKnownSession] = useState<SessionData>(initialSession ?? null);
 
   const { data, isPending } = betterAuthSession;
 
-  if (data !== undefined) {
-    lastKnownSessionRef.current = data;
-  }
+  // Persist latest non-undefined session without touching refs during render
+  useEffect(() => {
+    if (data !== undefined) {
+      setLastKnownSession(data);
+    }
+  }, [data]);
 
   const contextValue = useMemo(() => {
-    const session = data !== undefined ? data : lastKnownSessionRef.current;
+    const session = data !== undefined ? data : lastKnownSession;
     const pending = isPending && data === undefined;
 
     return { session, isPending: pending };
-  }, [data, isPending]);
+  }, [data, isPending, lastKnownSession]);
 
   return (
     <SessionContext.Provider value={contextValue}>

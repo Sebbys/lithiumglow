@@ -223,7 +223,15 @@ export async function updateOrderStatus(
   status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled'
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const updates: any = { status }
+    type OrderUpdates = Partial<{
+      status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled'
+      confirmedAt: Date
+      preparingAt: Date
+      readyAt: Date
+      completedAt: Date
+      cancelledAt: Date
+    }>
+    const updates: OrderUpdates = { status }
     
     // Add timestamp based on status
     if (status === 'confirmed') updates.confirmedAt = new Date()

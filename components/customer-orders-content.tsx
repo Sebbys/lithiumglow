@@ -272,7 +272,7 @@ export function CustomerOrdersContent({ userId }: CustomerOrdersContentProps) {
             {/* Footer Info */}
             {!hasMore && orders.length > 5 && (
               <p className="text-center text-sm text-muted-foreground mt-6">
-                That's all your {activeTab !== 'all' ? activeTab : ''} orders
+                That’s all your {activeTab !== 'all' ? activeTab : ''} orders
               </p>
             )}
           </>

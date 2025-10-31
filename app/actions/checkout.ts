@@ -47,7 +47,14 @@ export async function checkoutAction(
     }
 
     // Convert to format for verification
-    const cartItems: ClientCartItem[] = clientCart.map((item: any) => ({
+    type ClientCartClient = {
+      menuItem: { id: string }
+      quantity: number
+      selectedCustomOptions: Record<string, string>
+      selectedExtraOptions: Record<string, number>
+      totalPrice: number
+    }
+    const cartItems: ClientCartItem[] = (clientCart as ClientCartClient[]).map((item) => ({
       menuItemId: item.menuItem.id,
       quantity: item.quantity,
       selectedCustomOptions: item.selectedCustomOptions,

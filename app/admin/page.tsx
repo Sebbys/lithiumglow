@@ -27,6 +27,17 @@ export default async function AdminPage() {
     headers: await headers()
   })
 
+  if(!session || session.user.role !== 'admin') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center p-6 bg-white rounded-lg shadow-md">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p className="text-sm text-muted-foreground">You do not have permission to view this page.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}

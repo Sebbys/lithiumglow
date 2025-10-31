@@ -18,8 +18,36 @@ interface OrderDetailsContentProps {
   userId?: string
 }
 
+type OrderDetails = {
+  order: {
+    orderNumber: string
+    createdAt: string | Date
+    status: string
+    paymentStatus: string
+    orderType: string
+    paymentMethod?: string | null
+    customerName?: string | null
+    customerEmail?: string | null
+    customerPhone?: string | null
+    tableNumber?: string | null
+    subtotal: number
+    tax: number
+    discount: number
+    totalPrice: number
+    totalMacros: { protein: number; carbs: number; fats: number; calories: number }
+    specialInstructions?: string | null
+    xenditInvoiceId?: string | null
+  }
+  items: Array<{
+    menuItemSnapshot: { name: string; description?: string; image?: string | null }
+    quantity: number
+    totalPrice: number
+    totalMacros: { protein: number; carbs: number; fats: number; calories: number }
+  }>
+}
+
 export function OrderDetailsContent({ orderId, userId }: OrderDetailsContentProps) {
-  const [orderData, setOrderData] = useState<any>(null)
+  const [orderData, setOrderData] = useState<OrderDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [checkingPayment, setCheckingPayment] = useState(false)
 
@@ -31,7 +59,7 @@ export function OrderDetailsContent({ orderId, userId }: OrderDetailsContentProp
     setLoading(true)
     const result = await getOrder(orderId)
     if (result.success) {
-      setOrderData(result)
+      setOrderData({ order: result.order as any, items: result.items as any })
     } else {
       toast.error('Failed to load order details')
     }
@@ -63,7 +91,7 @@ export function OrderDetailsContent({ orderId, userId }: OrderDetailsContentProp
   }
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: any; label: string; icon: any; color: string }> = {
+    const variants: Record<string, { variant: 'secondary' | 'default' | 'destructive' | 'outline'; label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
       pending: { variant: 'secondary', label: 'Pending', icon: Clock, color: 'bg-yellow-500' },
       confirmed: { variant: 'default', label: 'Confirmed', icon: CheckCircle, color: 'bg-blue-500' },
       preparing: { variant: 'default', label: 'Preparing', icon: Package, color: 'bg-orange-500' },
@@ -107,7 +135,7 @@ export function OrderDetailsContent({ orderId, userId }: OrderDetailsContentProp
           <CardContent className="flex flex-col items-center justify-center py-16">
             <XCircle className="h-16 w-16 text-destructive mb-4" />
             <h3 className="text-xl font-semibold mb-2">Order not found</h3>
-            <p className="text-muted-foreground mb-6">This order does not exist or you don't have access to it</p>
+            <p className="text-muted-foreground mb-6">This order does not exist or you do not have access to it</p>
             <Button asChild>
               <Link href="/orders">Back to Orders</Link>
             </Button>
@@ -150,7 +178,7 @@ export function OrderDetailsContent({ orderId, userId }: OrderDetailsContentProp
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {items?.map((item: any, idx: number) => (
+                {items?.map((item, idx: number) => (
                   <div key={idx} className="flex gap-4 pb-4 border-b last:border-0 last:pb-0">
                     <div className="relative h-20 w-20 rounded-lg overflow-hidden bg-muted shrink-0">
                       {item.menuItemSnapshot.image ? (

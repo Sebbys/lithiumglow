@@ -1,6 +1,6 @@
 "use client"
 import { useSession } from "@/lib/auth-client"
-export default function dev(){
+export default function Dev(){
     const { data } = useSession();
     const session = data?.user ?? null;
     return(

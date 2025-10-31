@@ -16,6 +16,8 @@ import { Plus, Trash2 } from "lucide-react"
 import { createMenuItem, updateMenuItem } from "@/lib/actions/admin"
 import { toast } from "sonner"
 import { CATEGORIES } from "@/lib/menu-data"
+import { MenuImageUploaderClient } from "@/components/admin/menu-image-uploader-client"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface MenuItemFormProps {
   item: MenuItem | null
@@ -139,7 +141,7 @@ export function MenuItemForm({ item, open, onClose, onSave }: MenuItemFormProps)
     }))
   }
 
-  const updateCustomOption = (index: number, field: string, value: any) => {
+  const updateCustomOption = (index: number, field: 'name', value: string) => {
     setFormData((prev) => {
       const updated = [...(prev.customOptions || [])]
       updated[index] = { ...updated[index], [field]: value }
@@ -166,11 +168,16 @@ export function MenuItemForm({ item, open, onClose, onSave }: MenuItemFormProps)
     })
   }
 
-  const updateChoice = (optionIndex: number, choiceIndex: number, field: string, value: any) => {
+  const updateChoice = (
+    optionIndex: number,
+    choiceIndex: number,
+    field: 'label' | 'protein' | 'carbs' | 'fats' | 'calories',
+    value: string | number
+  ) => {
     setFormData((prev) => {
       const updated = [...(prev.customOptions || [])]
       if (field === "label") {
-        updated[optionIndex].choices[choiceIndex].label = value
+        updated[optionIndex].choices[choiceIndex].label = String(value)
       } else {
         const macroAdj = updated[optionIndex].choices[choiceIndex].macroAdjustment
         macroAdj[field as keyof typeof macroAdj] = Number(value) || 0
@@ -203,11 +210,15 @@ export function MenuItemForm({ item, open, onClose, onSave }: MenuItemFormProps)
     }))
   }
 
-  const updateExtraOption = (index: number, field: string, value: any) => {
+  const updateExtraOption = (
+    index: number,
+    field: 'name' | 'price' | 'protein' | 'carbs' | 'fats' | 'calories',
+    value: string | number
+  ) => {
     setFormData((prev) => {
       const updated = [...(prev.extraOptions || [])]
       if (field === "name") {
-        updated[index].name = value
+        updated[index].name = String(value)
       } else if (field === "price") {
         updated[index].price = Number(value) || 0
       } else {
@@ -227,17 +238,19 @@ export function MenuItemForm({ item, open, onClose, onSave }: MenuItemFormProps)
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh]">
+      <DialogContent className="w-full max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>{item ? "Edit Menu Item" : "Add Menu Item"}</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            {item ? "✏️ Edit Menu Item" : "➕ Add New Menu Item"}
+          </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(90vh-8rem)] pr-4">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <ScrollArea className="flex-1 overflow-hidden pr-4">
+          <form onSubmit={handleSubmit} className="space-y-8">
             {/* Basic Info */}
             <div className="space-y-4">
               <h3 className="font-semibold">Basic Information</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Name *</Label>
                   <Input
@@ -277,26 +290,84 @@ export function MenuItemForm({ item, open, onClose, onSave }: MenuItemFormProps)
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="price">Price ($)</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="image">Image URL</Label>
-                  <Input
-                    id="image"
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    placeholder="/placeholder.svg?height=300&width=400"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="price">Price ($)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                />
+              </div>
+
+              {/* Image Upload/URL Section */}
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Menu Item Image</Label>
+                {item?.id ? (
+                  <Tabs defaultValue="upload" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 mb-4">
+                      <TabsTrigger value="upload" className="gap-2">
+                        📤 Upload Image
+                      </TabsTrigger>
+                      <TabsTrigger value="url" className="gap-2">
+                        🔗 Manual URL
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="upload" className="mt-6 space-y-4">
+                      <MenuImageUploaderClient
+                        menuItemId={item.id}
+                        currentImage={formData.image}
+                        onUploadComplete={(imageUrl) => {
+                          setFormData({ ...formData, image: imageUrl })
+                          toast.success("Image uploaded", { 
+                            description: "Image has been uploaded successfully." 
+                          })
+                        }}
+                      />
+                    </TabsContent>
+                    <TabsContent value="url" className="mt-6">
+                      <div className="space-y-3 max-w-xl mx-auto">
+                        <Label htmlFor="image" className="text-sm font-medium">Image URL</Label>
+                        <Input
+                          id="image"
+                          value={formData.image}
+                          onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                          placeholder="https://example.com/image.jpg"
+                          className="font-mono text-sm"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Paste a direct image URL (PNG, JPG, or WebP)
+                        </p>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="rounded-lg border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/50 p-6 text-center">
+                      <div className="text-4xl mb-2">💡</div>
+                      <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">
+                        Save First, Then Upload
+                      </p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                        Create this menu item first, then you can upload images
+                      </p>
+                    </div>
+                    <div className="space-y-2 max-w-xl mx-auto">
+                      <Label htmlFor="image" className="text-sm font-medium">Image URL (Optional)</Label>
+                      <Input
+                        id="image"
+                        value={formData.image}
+                        onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                        placeholder="https://example.com/image.jpg"
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        You can add a temporary URL now and upload later
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -305,7 +376,7 @@ export function MenuItemForm({ item, open, onClose, onSave }: MenuItemFormProps)
             {/* Base Macros */}
             <div className="space-y-4">
               <h3 className="font-semibold">Base Macros</h3>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="protein">Protein (g)</Label>
                   <Input
@@ -463,7 +534,7 @@ export function MenuItemForm({ item, open, onClose, onSave }: MenuItemFormProps)
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     <Input
                       type="number"
                       placeholder="Protein"
@@ -493,7 +564,7 @@ export function MenuItemForm({ item, open, onClose, onSave }: MenuItemFormProps)
               ))}
             </div>
 
-            <div className="flex justify-end gap-2 pt-4">
+            <div className="flex justify-end gap-2 pt-6 border-t mt-6 sticky bottom-0 bg-background">
               <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
                 Cancel
               </Button>
