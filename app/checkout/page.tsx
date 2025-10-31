@@ -1,9 +1,8 @@
 import { Suspense } from 'react'
-import { CheckoutContent } from '@/components/checkout-content'
+import { CheckoutForm } from '@/components/checkout-form'
 import { Skeleton } from '@/components/ui/skeleton'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
-import { redirect } from 'next/navigation'
 
 export const metadata = {
   title: 'Checkout | FitBite',
@@ -34,16 +33,10 @@ async function CheckoutPage() {
     headers: await headers(),
   })
 
-  // Optional: Redirect to login if not authenticated
-  // Uncomment if you want to require authentication for checkout
-  // if (!session) {
-  //   redirect('/api/auth/signin?callbackUrl=/checkout')
-  // }
-
   return (
     <div className="min-h-screen bg-background">
       <Suspense fallback={<CheckoutSkeleton />}>
-        <CheckoutContent session={session} />
+        <CheckoutForm session={session} />
       </Suspense>
     </div>
   )

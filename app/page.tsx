@@ -1,11 +1,17 @@
 import { Suspense } from 'react'
 import MenuServerCached from '@/components/MenuServerCached'
 import { Button } from '@/components/ui/button'
-import { ShoppingCartIcon } from 'lucide-react'
 import Link from 'next/link'
 import { UserProfile } from '@/components/UserProfile'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
+import { preload } from 'react-dom'
+
+// React 19: Preload critical resources
+if (typeof window === 'undefined') {
+  // Preload fonts (already loaded by Next.js font optimization)
+  // Preload could be used for other critical assets
+}
 
 // Menu items skeleton for loading state
 function MenuSkeleton() {
@@ -29,6 +35,10 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* React 19: Native metadata in component */}
+      <title>FitBite - Order Healthy Meals</title>
+      <meta name="description" content="Browse our menu of healthy meals with detailed macro tracking" />
+      
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 border-b">
         <div className="container mx-auto px-4 py-4">
@@ -67,4 +77,3 @@ export default async function HomePage() {
   )
 }
 
-// MenuServerCached now handles fetching and caching the menu server-side.

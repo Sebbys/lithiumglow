@@ -53,74 +53,77 @@ export function ShoppingCart({ cart, open, onClose, onRemoveItem, onCheckout }: 
           </div>
         ) : (
           <>
-            <ScrollArea className="flex-1 -mx-6 px-6">
-              <div className="space-y-4 py-4">
-                {cart.map((item, index) => (
-                  <div key={index} className="border rounded-lg p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <h4 className="font-semibold leading-tight">{item.menuItem.name}</h4>
-                        <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
+            {/* Scrollable Cart Items */}
+            <div className="flex-1 min-h-0 -mx-6">
+              <ScrollArea className="h-full px-6">
+                <div className="space-y-4 py-2 p-4">
+                  {cart.map((item, index) => (
+                    <div key={index} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <h4 className="font-semibold leading-tight">{item.menuItem.name}</h4>
+                          <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="font-bold text-emerald-600">
+                            {formatIDR(item.totalPrice * item.quantity)}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => onRemoveItem(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-start gap-2">
-                        <span className="font-bold text-emerald-600">
-                          {formatIDR(item.totalPrice * item.quantity)}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => onRemoveItem(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+
+                      {/* Custom Options */}
+                      {Object.keys(item.selectedCustomOptions).length > 0 && (
+                        <div className="space-y-1">
+                          {Object.entries(item.selectedCustomOptions).map(([key, value]) => (
+                            <p key={key} className="text-sm text-muted-foreground">
+                              <span className="font-medium">{key}:</span> {value}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Extra Options */}
+                      {Object.keys(item.selectedExtraOptions).length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {Object.entries(item.selectedExtraOptions).map(([extraName, quantity]) => (
+                            <Badge key={extraName} variant="secondary" className="text-xs">
+                              + {extraName} {quantity > 1 ? `(x${quantity})` : ''}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Macros */}
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline" className="text-emerald-600 border-emerald-200">
+                          P: {item.totalMacros.protein * item.quantity}g
+                        </Badge>
+                        <Badge variant="outline" className="text-blue-600 border-blue-200">
+                          C: {item.totalMacros.carbs * item.quantity}g
+                        </Badge>
+                        <Badge variant="outline" className="text-amber-600 border-amber-200">
+                          F: {item.totalMacros.fats * item.quantity}g
+                        </Badge>
+                        <Badge variant="outline" className="text-rose-600 border-rose-200">
+                          {item.totalMacros.calories * item.quantity} cal
+                        </Badge>
                       </div>
                     </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
 
-                    {/* Custom Options */}
-                    {Object.keys(item.selectedCustomOptions).length > 0 && (
-                      <div className="space-y-1">
-                        {Object.entries(item.selectedCustomOptions).map(([key, value]) => (
-                          <p key={key} className="text-sm text-muted-foreground">
-                            <span className="font-medium">{key}:</span> {value}
-                          </p>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Extra Options */}
-                    {Object.keys(item.selectedExtraOptions).length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {Object.entries(item.selectedExtraOptions).map(([extraName, quantity]) => (
-                          <Badge key={extraName} variant="secondary" className="text-xs">
-                            + {extraName} {quantity > 1 ? `(x${quantity})` : ''}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Macros */}
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline" className="text-emerald-600 border-emerald-200">
-                        P: {item.totalMacros.protein * item.quantity}g
-                      </Badge>
-                      <Badge variant="outline" className="text-blue-600 border-blue-200">
-                        C: {item.totalMacros.carbs * item.quantity}g
-                      </Badge>
-                      <Badge variant="outline" className="text-amber-600 border-amber-200">
-                        F: {item.totalMacros.fats * item.quantity}g
-                      </Badge>
-                      <Badge variant="outline" className="text-rose-600 border-rose-200">
-                        {item.totalMacros.calories * item.quantity} cal
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-
-            <div className="space-y-4 pt-4 border-t">
-              {/* Total Macros */}
+            {/* Fixed Totals Section at Bottom */}
+            <div className="shrink-0 space-y-4 px-4 mb-4">
               <div>
                 <h4 className="font-semibold mb-2">Total Nutritional Info</h4>
                 <div className="grid grid-cols-4 gap-2">
@@ -143,8 +146,6 @@ export function ShoppingCart({ cart, open, onClose, onRemoveItem, onCheckout }: 
                 </div>
               </div>
 
-              <Separator />
-
               {/* Total Price and Checkout */}
               <div className="flex items-center justify-between">
                 <div>
@@ -157,6 +158,7 @@ export function ShoppingCart({ cart, open, onClose, onRemoveItem, onCheckout }: 
               </div>
             </div>
           </>
+
         )}
       </SheetContent>
     </Sheet>

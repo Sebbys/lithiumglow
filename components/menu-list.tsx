@@ -33,20 +33,52 @@ export function MenuList({ initialItems }: MenuListProps) {
     const totalMacros = calculateTotalMacros(menuItem, selectedCustomOptions, selectedExtraOptions)
     const totalPrice = calculateTotalPrice(menuItem, selectedCustomOptions, selectedExtraOptions)
 
-    const cartItem: CartItem = {
-      menuItem,
-      selectedCustomOptions,
-      selectedExtraOptions,
-      totalMacros,
-      totalPrice,
-      quantity,
-    }
+    setCart((prev) => {
+      // Check if an identical item exists (same menu item ID and same customizations)
+      const existingItemIndex = prev.findIndex((item) => {
+        // Check if menu item ID matches
+        if (item.menuItem.id !== menuItem.id) return false
+        
+        // Check if custom options match
+        const customOptionsMatch = 
+          JSON.stringify(item.selectedCustomOptions) === JSON.stringify(selectedCustomOptions)
+        
+        // Check if extra options match
+        const extraOptionsMatch = 
+          JSON.stringify(item.selectedExtraOptions) === JSON.stringify(selectedExtraOptions)
+        
+        return customOptionsMatch && extraOptionsMatch
+      })
 
-    setCart((prev) => [...prev, cartItem])
-    toast.success(
-      "Added to cart",
-      { description: `${quantity}x ${menuItem.name}` },
-    )
+      if (existingItemIndex !== -1) {
+        // Item exists, increase quantity
+        const updatedCart = [...prev]
+        updatedCart[existingItemIndex] = {
+          ...updatedCart[existingItemIndex],
+          quantity: updatedCart[existingItemIndex].quantity + quantity,
+        }
+        toast.success(
+          "Updated cart",
+          { description: `${menuItem.name} quantity increased to ${updatedCart[existingItemIndex].quantity}` },
+        )
+        return updatedCart
+      } else {
+        // Item doesn't exist or has different customizations, add as new
+        const cartItem: CartItem = {
+          menuItem,
+          selectedCustomOptions,
+          selectedExtraOptions,
+          totalMacros,
+          totalPrice,
+          quantity,
+        }
+        toast.success(
+          "Added to cart",
+          { description: `${quantity}x ${menuItem.name}` },
+        )
+        return [...prev, cartItem]
+      }
+    })
   }
 
   const handleRemoveItem = (index: number) => {

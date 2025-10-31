@@ -2,7 +2,7 @@
 
 import { db } from '@/db/drizzle'
 import { order, orderItem } from '@/db/schema'
-import { eq, gte, lt, and } from 'drizzle-orm'
+import { eq, gte, lt, and, desc, sql } from 'drizzle-orm'
 import Xendit from 'xendit-node'
 
 const xendit = new Xendit({
@@ -273,24 +273,67 @@ export async function getAllOrders() {
 /**
  * Get user orders
  */
-export async function getUserOrders(userId: string) {
+export async function getUserOrders(
+  userId: string,
+  filters?: {
+    status?: string
+    paymentStatus?: string
+    orderType?: string
+    limit?: number
+    offset?: number
+  }
+) {
   try {
-    const orders = await db
+    const conditions = [eq(order.userId, userId)]
+    
+    // Add filters
+    if (filters?.status) {
+      conditions.push(eq(order.status, filters.status))
+    }
+    if (filters?.paymentStatus) {
+      conditions.push(eq(order.paymentStatus, filters.paymentStatus))
+    }
+    if (filters?.orderType) {
+      conditions.push(eq(order.orderType, filters.orderType))
+    }
+
+    // Build base query
+    const whereCondition = conditions.length > 1 ? and(...conditions) : conditions[0]
+    
+    // Get orders with pagination
+    const ordersQuery = db
       .select()
       .from(order)
-      .where(eq(order.userId, userId))
-      .orderBy(order.createdAt)
+      .where(whereCondition)
+      .orderBy(desc(order.createdAt))
+    
+    // Apply pagination if specified
+    const orders = await (filters?.limit 
+      ? ordersQuery.limit(filters.limit).offset(filters.offset || 0)
+      : ordersQuery)
+
+    // Get total count for pagination
+    const [countResult] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(order)
+      .where(whereCondition)
+
+    const totalCount = countResult?.count || 0
 
     return {
       success: true,
       orders,
+      total: totalCount,
+      hasMore: filters?.limit ? (filters.offset || 0) + orders.length < totalCount : false,
     }
   } catch (error) {
     console.error('Error fetching user orders:', error)
     return {
       success: false,
       error: 'Failed to fetch orders',
-      orders: []
+      orders: [],
+      total: 0,
+      hasMore: false,
     }
   }
 }

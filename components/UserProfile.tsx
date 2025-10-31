@@ -68,6 +68,9 @@ export function UserProfile({ className }: { className?: string }) {
         <DropdownMenuItem className="cursor-pointer" asChild>
           <Link href="/dashboard">Dashboard</Link>
         </DropdownMenuItem>
+        <DropdownMenuItem className="cursor-pointer" asChild>
+          <Link href="/orders">Orders</Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         
         <DropdownMenuSeparator />

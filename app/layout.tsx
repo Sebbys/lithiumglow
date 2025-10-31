@@ -17,6 +17,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "FitBite - Healthy Meals with Tracked Macros",
   description: "Order healthy meals with detailed macro tracking",
+  keywords: ["healthy meals", "macro tracking", "fitness food", "nutrition", "meal prep"],
+  authors: [{ name: "FitBite" }],
+  openGraph: {
+    title: "FitBite - Healthy Meals with Tracked Macros",
+    description: "Order healthy meals with detailed macro tracking",
+    type: "website",
+  },
 };
 
 export default async function RootLayout({
@@ -26,6 +33,11 @@ export default async function RootLayout({
 }>) {
   return (
     <html lang="en">
+      {/* React 19: Native metadata support */}
+      <head>
+        <meta name="theme-color" content="#10b981" />
+        <link rel="icon" href="/favicon.ico" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
