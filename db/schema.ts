@@ -8,7 +8,7 @@ export const user = pgTable("user", {
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  role: text("role").default("member").notNull(),
+  role: text("role", { enum: ["member", "admin", "nutritionist"] }).default("member").notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
@@ -200,3 +200,91 @@ export const orderItem = pgTable("order_item", {
   }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Ingredient Tables
+export const ingredient = pgTable("ingredient", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type", { 
+    enum: ["protein", "carbs", "vegetables", "fruits", "fats", "dairy", "legumes", "dressing", "other"] 
+  }).notNull().default("other"), // Ingredient category/source
+  protein: real("protein").notNull(), // in grams
+  carbs: real("carbs").notNull(), // in grams
+  fat: real("fat").notNull(), // in grams
+  // kcal will be computed: (protein * 4) + (carbs * 4) + (fat * 9)
+  servingSize: real("serving_size").notNull().default(100), // in grams
+  unit: text("unit").notNull().default("g"), // g, ml, piece, etc.
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+  createdBy: uuid("created_by")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+});
+
+// Meal Plan Tables
+export const mealPlan = pgTable("meal_plan", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  description: text("description"),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }), // The member receiving the plan
+  nutritionistId: uuid("nutritionist_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }), // The nutritionist who created it
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  status: text("status", { enum: ["draft", "active", "completed", "cancelled"] }).default("draft").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+});
+
+export const mealPlanDay = pgTable("meal_plan_day", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  mealPlanId: uuid("meal_plan_id")
+    .notNull()
+    .references(() => mealPlan.id, { onDelete: "cascade" }),
+  dayNumber: integer("day_number").notNull(), // 1-7 for a week plan
+  date: timestamp("date").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+});
+
+// Composed Meal (e.g., "Chicken Soba Veggie Bowl")
+export const mealPlanDayMeal = pgTable("meal_plan_day_meal", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  mealPlanDayId: uuid("meal_plan_day_id")
+    .notNull()
+    .references(() => mealPlanDay.id, { onDelete: "cascade" }),
+  mealType: text("meal_type", { enum: ["breakfast", "lunch", "dinner", "snack"] }).notNull(),
+  mealName: text("meal_name").notNull(), // e.g., "Chicken Soba Veggie Bowl"
+  notes: text("notes"), // Preparation instructions or serving suggestions
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Ingredients within a composed meal
+export const mealPlanDayMealIngredient = pgTable("meal_plan_day_meal_ingredient", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  mealId: uuid("meal_id")
+    .notNull()
+    .references(() => mealPlanDayMeal.id, { onDelete: "cascade" }),
+  ingredientId: uuid("ingredient_id")
+    .notNull()
+    .references(() => ingredient.id, { onDelete: "restrict" }),
+  quantity: real("quantity").notNull(), // Quantity based on ingredient's unit
+  preparationNote: text("preparation_note"), // e.g., "Sautéed", "Sliced", "Sous Vide"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
