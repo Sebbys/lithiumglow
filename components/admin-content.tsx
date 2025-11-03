@@ -10,6 +10,7 @@ import type { MenuItem } from "@/lib/types"
 import { MenuItemForm } from "./menu-item-form"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { formatIDR } from "@/lib/utils"
 
 interface AdminContentProps {
   initialItems: MenuItem[]
@@ -101,7 +102,7 @@ export function AdminContent({ initialItems }: AdminContentProps) {
                   <TableCell>
                     <Badge variant="outline">{item.category}</Badge>
                   </TableCell>
-                  <TableCell>${item.price.toFixed(2)}</TableCell>
+                  <TableCell>{formatIDR(item.price)}</TableCell>
                   <TableCell>
                     <div className="flex gap-1 flex-wrap">
                       <Badge variant="secondary" className="text-xs">

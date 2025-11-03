@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { UserProfile } from '@/components/UserProfile'
 import { auth } from '@/lib/auth'
+import { getUser } from '@/lib/auth-utils'
 import { headers } from 'next/headers'
 
 // Loading skeleton for admin table
@@ -23,6 +24,8 @@ function AdminSkeleton() {
 
 export default async function AdminPage() {
   // Fetch session on the server
+  const user = await getUser()
+  
   const session = await auth.api.getSession({
     headers: await headers()
   })
@@ -66,6 +69,9 @@ export default async function AdminPage() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Suspense fallback={<AdminSkeleton />}>
+        <pre>
+{JSON.stringify(user, null, 2)}
+        </pre>
           <AdminMenuContent />
         </Suspense>
       </main>

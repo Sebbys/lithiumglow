@@ -288,3 +288,4 @@ export const mealPlanDayMealIngredient = pgTable("meal_plan_day_meal_ingredient"
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const schema = {user,session,account,verification,menuItem,order,orderItem,ingredient,mealPlan,mealPlanDay,mealPlanDayMeal,mealPlanDayMealIngredient};

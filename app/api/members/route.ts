@@ -3,23 +3,25 @@ import { unstable_noStore } from "next/cache";
 import { db } from "@/db/drizzle";
 import { user } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { getUser } from "@/lib/auth-utils";
 import { eq } from "drizzle-orm";
 
 // GET all members (for nutritionists to select when creating plans)
 export async function GET(request: NextRequest) {
   unstable_noStore(); // Opt out of static generation before try/catch
+  const users = await getUser();
   
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
+    // const session = await auth.api.getSession({
+    //   headers: request.headers,
+    // });
 
-    if (!session?.user) {
+    if (!users) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Only nutritionists and admins can view members list
-    if (session.user.role !== "nutritionist" && session.user.role !== "admin") {
+    if (users.role !== "nutritionist" && users.role !== "admin") {
       return NextResponse.json(
         { error: "Only nutritionists can view members" },
         { status: 403 }

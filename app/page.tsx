@@ -40,7 +40,7 @@ export default async function HomePage() {
       <meta name="description" content="Browse our menu of healthy meals with detailed macro tracking" />
       
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 border-b">
+      <header className="sticky top-0 z-50 bg-white border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>

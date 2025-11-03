@@ -16,5 +16,7 @@ export default async function CreateMealPlanPage() {
     redirect("/");
   }
 
+  
+
   return <MealPlanCreationV2 />;
 }
