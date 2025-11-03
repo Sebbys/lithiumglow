@@ -73,13 +73,16 @@ export async function GET(
                 ingredient: {
                   id: ingredient.id,
                   name: ingredient.name,
-                  description: ingredient.description,
+                  role: ingredient.role,
+                  category: ingredient.category,
                   protein: ingredient.protein,
                   carbs: ingredient.carbs,
                   fat: ingredient.fat,
-                  servingSize: ingredient.servingSize,
-                  unit: ingredient.unit,
-                  type: ingredient.type,
+                  sugar: ingredient.sugar,
+                  fiber: ingredient.fiber,
+                  kcal: ingredient.kcal,
+                  servingSizeG: ingredient.servingSizeG,
+                  servingLabel: ingredient.servingLabel,
                 },
               })
               .from(mealPlanDayMealIngredient)
@@ -92,11 +95,12 @@ export async function GET(
             // Calculate macros for each ingredient based on quantity
             const ingredientsWithMacros = ingredients.map((item) => {
               if (item.ingredient) {
-                const multiplier = item.quantity / item.ingredient.servingSize;
+                const multiplier = item.quantity / item.ingredient.servingSizeG;
                 const protein = item.ingredient.protein * multiplier;
                 const carbs = item.ingredient.carbs * multiplier;
                 const fat = item.ingredient.fat * multiplier;
-                const kcal = protein * 4 + carbs * 4 + fat * 9;
+                // Prefer scaling kcal directly from per-serving kcal to avoid rounding differences
+                const kcal = item.ingredient.kcal * multiplier;
 
                 return {
                   ...item,

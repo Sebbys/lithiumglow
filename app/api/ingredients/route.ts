@@ -4,6 +4,7 @@ import { ingredient } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { eq, desc } from "drizzle-orm";
+import { randomUUID } from "crypto";
 
 // GET all ingredients
 export async function GET() {
@@ -49,37 +50,58 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, protein, carbs, fat, servingSize, unit } = body;
-
-    // Validate required fields
-    if (!name || protein === undefined || carbs === undefined || fat === undefined) {
-      return NextResponse.json(
-        { error: "Name, protein, carbs, and fat are required" },
-        { status: 400 }
-      );
+    const name: string = (body.name || "").trim();
+    if (!name) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
+
+    // Macros
+    const protein = toNum(body.protein, 0);
+    const carbs = toNum(body.carbs, 0);
+    const fat = toNum(body.fat, 0);
+    const sugar = toNum(body.sugar, 0);
+    const fiber = toNum(body.fiber, 0);
+    const kcal = toNum(body.kcal, protein * 4 + carbs * 4 + fat * 9);
+
+    // Serving and pricing
+    const servingSizeG = toNum(body.servingSizeG, 100);
+    const servingLabel: string = body.servingLabel || `${servingSizeG}g`;
+    const pricePerServing = Math.max(0, Math.round(toNum(body.pricePerServing, 0)));
+
+    // Classification & tags
+    const role: string = body.role || body.ingredient_role || "other";
+    const category: string = body.category || inferCategoryFromRole(role) || "other";
+    const mealTypes: string[] = toArr(body.mealTypes);
+    const cuisine: string[] = toArr(body.cuisine, ["universal"]);
+    const dietTags: string[] = toArr(body.dietTags);
+    const allergens: string[] = toArr(body.allergens);
+    const status: string = body.status || "active";
 
     const [newIngredient] = await db
       .insert(ingredient)
       .values({
+        id: randomUUID(),
         name,
-        description: description || null,
-        protein: parseFloat(protein),
-        carbs: parseFloat(carbs),
-        fat: parseFloat(fat),
-        servingSize: servingSize ? parseFloat(servingSize) : 100,
-        unit: unit || "g",
-        createdBy: session.user.id,
+        role,
+        category,
+        protein,
+        carbs,
+        fat,
+        sugar,
+        fiber,
+        kcal,
+        servingSizeG,
+        servingLabel,
+        pricePerServing,
+        mealTypes,
+        cuisine,
+        dietTags,
+        allergens,
+        status,
       })
       .returning();
 
-    // Calculate kcal
-    const ingredientWithKcal = {
-      ...newIngredient,
-      kcal: newIngredient.protein * 4 + newIngredient.carbs * 4 + newIngredient.fat * 9,
-    };
-
-    return NextResponse.json(ingredientWithKcal, { status: 201 });
+    return NextResponse.json(newIngredient, { status: 201 });
   } catch (error) {
     console.error("Error creating ingredient:", error);
     return NextResponse.json(
@@ -87,4 +109,34 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Helpers
+function toNum(v: any, fallback = 0): number {
+  const n = typeof v === "string" ? parseFloat(v) : typeof v === "number" ? v : NaN;
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function toArr(v: any, fallback: string[] = []): string[] {
+  if (!v) return fallback;
+  if (Array.isArray(v)) return v.filter(Boolean).map(String);
+  if (typeof v === "string") {
+    try {
+      const parsed = JSON.parse(v);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean).map(String);
+    } catch {}
+    return v.split(",").map((s) => s.trim()).filter(Boolean);
+  }
+  return fallback;
+}
+
+function inferCategoryFromRole(role: string): string {
+  const r = (role || "").toLowerCase();
+  if (r.includes("protein")) return "protein";
+  if (r.includes("carb")) return "carb";
+  if (r.includes("leafy") || r.includes("veggie") || r.includes("vegetable")) return "veggie";
+  if (r.includes("fat")) return "fat";
+  if (r.includes("dressing") || r.includes("sauce")) return "dressing";
+  if (r.includes("topping") || r.includes("garnish")) return "topping";
+  return "other";
 }

@@ -29,8 +29,8 @@ interface Ingredient {
   carbs: number;
   fat: number;
   kcal: number;
-  servingSize: number;
-  unit: string;
+  servingSizeG: number;
+  servingLabel: string;
 }
 
 interface Meal {
@@ -172,7 +172,7 @@ export default function MealPlanCreation() {
     day.meals.forEach((meal) => {
       const ingredient = ingredients.find((i) => i.id === meal.ingredientId);
       if (ingredient && meal.quantity) {
-        const multiplier = parseFloat(meal.quantity) / ingredient.servingSize;
+  const multiplier = parseFloat(meal.quantity) / ingredient.servingSizeG;
         totalProtein += ingredient.protein * multiplier;
         totalCarbs += ingredient.carbs * multiplier;
         totalFat += ingredient.fat * multiplier;
@@ -417,8 +417,7 @@ export default function MealPlanCreation() {
                           <SelectContent>
                             {ingredients.map((ingredient) => (
                               <SelectItem key={ingredient.id} value={ingredient.id}>
-                                {ingredient.name} ({ingredient.servingSize}
-                                {ingredient.unit})
+                                {ingredient.name} ({ingredient.servingLabel})
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -455,7 +454,7 @@ export default function MealPlanCreation() {
                               if (ingredient) {
                                 const multiplier =
                                   parseFloat(meal.quantity) /
-                                  ingredient.servingSize;
+                                  ingredient.servingSizeG;
                                 const p = ingredient.protein * multiplier;
                                 const c = ingredient.carbs * multiplier;
                                 const f = ingredient.fat * multiplier;

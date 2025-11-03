@@ -224,13 +224,18 @@ export async function GET(request: NextRequest) {
                 quantity: mealPlanDayMealIngredient.quantity,
                 preparationNote: mealPlanDayMealIngredient.preparationNote,
                 ingredient: {
+                  id: ingredient.id,
                   name: ingredient.name,
-                  type: ingredient.type,
+                  role: ingredient.role,
+                  category: ingredient.category,
                   protein: ingredient.protein,
                   carbs: ingredient.carbs,
                   fat: ingredient.fat,
-                  servingSize: ingredient.servingSize,
-                  unit: ingredient.unit,
+                  sugar: ingredient.sugar,
+                  fiber: ingredient.fiber,
+                  kcal: ingredient.kcal,
+                  servingSizeG: ingredient.servingSizeG,
+                  servingLabel: ingredient.servingLabel,
                 },
               })
               .from(mealPlanDayMealIngredient)

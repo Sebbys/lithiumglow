@@ -14,12 +14,12 @@ import { Plus, X, Edit, Trash2, Calendar, Sparkles } from "lucide-react";
 interface Ingredient {
   id: string;
   name: string;
-  type: string;
+  category: string;
   protein: number;
   carbs: number;
   fat: number;
-  servingSize: number;
-  unit: string;
+  servingSizeG: number;
+  servingLabel: string;
 }
 
 // Helper to calculate kcal from macros
@@ -197,7 +197,7 @@ export default function MealPlanCreationV2() {
     meal.ingredients.forEach((mealIng) => {
       const ingredient = ingredients.find((i) => i.id === mealIng.ingredientId);
       if (ingredient && mealIng.quantity) {
-        const multiplier = parseFloat(mealIng.quantity) / ingredient.servingSize;
+        const multiplier = parseFloat(mealIng.quantity) / ingredient.servingSizeG;
         totalProtein += ingredient.protein * multiplier;
         totalCarbs += ingredient.carbs * multiplier;
         totalFat += ingredient.fat * multiplier;
@@ -263,7 +263,7 @@ export default function MealPlanCreationV2() {
   };
 
   const getIngredientsByType = (type: string) => {
-    return ingredients.filter((i) => i.type === type);
+    return ingredients.filter((i) => i.category === type);
   };
 
   const handleGenerateAI = async () => {
@@ -515,7 +515,7 @@ export default function MealPlanCreationV2() {
                                             <span className="text-muted-foreground">{ing.preparationNote} </span>
                                           )}
                                           {ingredient?.name} ({ing.quantity}
-                                          {ingredient?.unit})
+                                          {ingredient?.servingLabel})
                                         </li>
                                       );
                                     })}

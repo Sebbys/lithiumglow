@@ -79,13 +79,16 @@ export class MiniMaxClient {
     availableIngredients: Array<{
       id: string;
       name: string;
-      type?: string;
+      role: string;
+      category: string;
       protein: number;
       carbs: number;
       fat: number;
-      servingSize: number;
-      unit: string;
-      description?: string | null;
+      sugar?: number | null;
+      fiber?: number | null;
+      kcal: number;
+      servingSizeG: number;
+      servingLabel: string;
     }>;
   }): Promise<{
     mealPlan: Array<{
@@ -138,16 +141,16 @@ Rules:
 - Meal names must be appetizing and descriptive
 - Preparation notes should be cooking methods or descriptions`;
 
-    // Group ingredients by type
+    // Group ingredients by category
     const groupedIngredients = params.availableIngredients.reduce((acc, ing) => {
-      const type = ing.type || "other";
-      if (!acc[type]) acc[type] = [];
-      acc[type].push(`${ing.name} (${ing.id}): ${ing.protein}p/${ing.carbs}c/${ing.fat}f per ${ing.servingSize}${ing.unit}`);
+      const category = ing.category || "other";
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(`${ing.name} (${ing.id}): ${ing.protein}p/${ing.carbs}c/${ing.fat}f per ${ing.servingLabel}`);
       return acc;
     }, {} as Record<string, string[]>);
 
     const ingredientsList = Object.entries(groupedIngredients)
-      .map(([type, items]) => `${type.toUpperCase()}:\n${items.join("\n")}`)
+      .map(([category, items]) => `${category.toUpperCase()}:\n${items.join("\n")}`)
       .join("\n\n");
 
     const userPrompt = `Create a 7-day meal plan with composed meals:
