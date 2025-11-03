@@ -203,26 +203,39 @@ export const orderItem = pgTable("order_item", {
 
 // Ingredient Tables
 export const ingredient = pgTable("ingredient", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey(),
   name: text("name").notNull(),
-  description: text("description"),
-  type: text("type", { 
-    enum: ["protein", "carbs", "vegetables", "fruits", "fats", "dairy", "legumes", "dressing", "other"] 
-  }).notNull().default("other"), // Ingredient category/source
+  role: text("role").notNull(), // base_protein, secondary_protein, base_carb, vegetable, fat_source, etc.
+  category: text("category").notNull(), // protein, carb, veggie, fat, fermented, dressing, topping, etc.
+  
+  // Macro values per serving
   protein: real("protein").notNull(), // in grams
   carbs: real("carbs").notNull(), // in grams
   fat: real("fat").notNull(), // in grams
-  // kcal will be computed: (protein * 4) + (carbs * 4) + (fat * 9)
-  servingSize: real("serving_size").notNull().default(100), // in grams
-  unit: text("unit").notNull().default("g"), // g, ml, piece, etc.
+  sugar: real("sugar").default(0), // in grams, for refined sugar awareness
+  fiber: real("fiber").default(0), // in grams, for digestive health
+  kcal: real("kcal").notNull(), // kilocalories
+  
+  // Serving information
+  servingSizeG: real("serving_size_g").notNull(), // serving size in grams
+  servingLabel: text("serving_label").notNull(), // e.g., "100g", "60g dry"
+  pricePerServing: integer("price_per_serving").notNull(), // price in smallest currency unit (e.g., IDR)
+  
+  // AI Generation Context
+  mealTypes: jsonb("meal_types").$type<string[]>(), // ["breakfast", "lunch", "dinner", "snack"]
+  cuisine: jsonb("cuisine").$type<string[]>(), // ["western", "asian", "mediterranean", etc.]
+  dietTags: jsonb("diet_tags").$type<string[]>(), // ["keto", "low-carb", "vegan", etc.]
+  allergens: jsonb("allergens").$type<string[]>(), // ["dairy", "fish", "soy", etc.]
+  
+  // Status tracking
+  status: text("status").notNull().default("active"), // active, inactive, archived
+  lastVerifiedAt: timestamp("last_verified_at"),
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
-  createdBy: uuid("created_by")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
 });
 
 // Meal Plan Tables
