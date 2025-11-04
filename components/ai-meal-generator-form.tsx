@@ -6,7 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -25,7 +31,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Trash2, Plus, Sparkles, ChefHat, Save, TrendingUp, TrendingDown, Minus, Info } from "lucide-react";
+import {
+  Trash2,
+  Plus,
+  Sparkles,
+  ChefHat,
+  Save,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Info,
+} from "lucide-react";
 
 const DIET_TAGS = ["omnivore", "vegetarian", "vegan"];
 const PRESETS = [
@@ -40,7 +56,12 @@ export function MealGeneratorForm() {
   const [dailyP, setDailyP] = useState(150);
   const [dailyC, setDailyC] = useState(250);
   const [dailyF, setDailyF] = useState(60);
-  const [preset, setPreset] = useState<"fast" | "balanced" | "quality" | "deep">("balanced");
+  const [dailykcal, setDailyKcal] = useState(
+    dailyP * 4 + dailyC * 4 + dailyF * 9
+  );
+  const [preset, setPreset] = useState<
+    "fast" | "balanced" | "quality" | "deep"
+  >("balanced");
   const [dietTags, setDietTags] = useState(["omnivore"]);
   const [allowRepeats, setAllowRepeats] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
@@ -59,12 +80,22 @@ export function MealGeneratorForm() {
         const data = await res.json();
         setIngredients(data);
         const map: Record<string, any> = {};
-        data.forEach((ing: any) => { map[(ing.name || "").toLowerCase()] = ing; });
+        data.forEach((ing: any) => {
+          map[(ing.name || "").toLowerCase()] = ing;
+        });
         setIngByName(map);
       } catch {}
     };
     load();
   }, []);
+
+  // Auto-compute calories from macros using 4-4-9 rule whenever P/C/F change
+  useEffect(() => {
+    const p = Number.isFinite(dailyP) ? dailyP : 0;
+    const c = Number.isFinite(dailyC) ? dailyC : 0;
+    const f = Number.isFinite(dailyF) ? dailyF : 0;
+    setDailyKcal(p * 4 + c * 4 + f * 9);
+  }, [dailyP, dailyC, dailyF]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,7 +120,7 @@ export function MealGeneratorForm() {
         const error = await response.json();
         throw new Error(error.error || "Failed to generate plan");
       }
-      
+
       const data = await response.json();
       console.log("Plan generated:", data);
       setResult(data);
@@ -109,7 +140,8 @@ export function MealGeneratorForm() {
     for (const cs of cLists) {
       if (!cs || cs.length === 0) continue;
       if (cs.includes("universal")) hasUni = true;
-      for (const c of cs) if (c !== "universal") counts[c] = (counts[c] || 0) + 1;
+      for (const c of cs)
+        if (c !== "universal") counts[c] = (counts[c] || 0) + 1;
     }
     const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
     if (entries.length > 0) return [entries[0][0]];
@@ -117,7 +149,9 @@ export function MealGeneratorForm() {
   }
 
   function computeMealFromNames(names: string[]) {
-    const items = names.map((n) => ingByName[(n || "").toLowerCase()]).filter(Boolean);
+    const items = names
+      .map((n) => ingByName[(n || "").toLowerCase()])
+      .filter(Boolean);
     const roles = items.map((i) => i.role || "other");
     const cuisines = majorityCuisine(items.map((i) => i.cuisine || []));
     const P = items.reduce((s, i) => s + (i.protein || 0), 0);
@@ -125,7 +159,12 @@ export function MealGeneratorForm() {
     const F = items.reduce((s, i) => s + (i.fat || 0), 0);
     const kcal = items.reduce((s, i) => s + (i.kcal || 0), 0);
     const price = items.reduce((s, i) => s + (i.pricePerServing || 0), 0);
-    return { roles, cuisines: cuisines.length ? cuisines : ["universal"], macros: { P, C, F, kcal }, price };
+    return {
+      roles,
+      cuisines: cuisines.length ? cuisines : ["universal"],
+      macros: { P, C, F, kcal },
+      price,
+    };
   }
 
   function recomputeDayTotals(dayObj: any) {
@@ -136,7 +175,13 @@ export function MealGeneratorForm() {
       (dayObj.meals.breakfast?.price || 0) +
       (dayObj.meals.lunch?.price || 0) +
       (dayObj.meals.dinner?.price || 0);
-    dayObj.totals = { P: b.P + l.P + d.P, C: b.C + l.C + d.C, F: b.F + l.F + d.F, kcal: b.kcal + l.kcal + d.kcal, price };
+    dayObj.totals = {
+      P: b.P + l.P + d.P,
+      C: b.C + l.C + d.C,
+      F: b.F + l.F + d.F,
+      kcal: b.kcal + l.kcal + d.kcal,
+      price,
+    };
   }
 
   async function savePlan() {
@@ -145,11 +190,18 @@ export function MealGeneratorForm() {
       const res = await fetch("/api/meal-plans/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: `Weekly Plan ${new Date().toISOString().slice(0,10)}`, days: plan.days }),
+        body: JSON.stringify({
+          name: `Weekly Plan ${new Date().toISOString().slice(0, 10)}`,
+          days: plan.days,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to save plan");
-      alert(`Saved! Plan ID: ${data.mealPlanId}${data.missing?.length ? ` (missing: ${data.missing.join(", ")})` : ""}`);
+      alert(
+        `Saved! Plan ID: ${data.mealPlanId}${
+          data.missing?.length ? ` (missing: ${data.missing.join(", ")})` : ""
+        }`
+      );
     } catch (e) {
       alert((e as Error).message);
     }
@@ -177,7 +229,8 @@ export function MealGeneratorForm() {
             Your Nutrition Goals
           </CardTitle>
           <CardDescription>
-            Set your daily macronutrient targets to generate a customized meal plan
+            Set your daily macronutrient targets to generate a customized meal
+            plan
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -185,7 +238,10 @@ export function MealGeneratorForm() {
             {/* Macro Inputs */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="protein" className="text-base font-semibold flex items-center gap-2">
+                <Label
+                  htmlFor="protein"
+                  className="text-base font-semibold flex items-center gap-2"
+                >
                   <div className="w-3 h-3 rounded-full bg-red-500"></div>
                   Protein
                 </Label>
@@ -204,11 +260,16 @@ export function MealGeneratorForm() {
                     g/day
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground">50-300g recommended</p>
+                <p className="text-xs text-muted-foreground">
+                  50-300g recommended
+                </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="carbs" className="text-base font-semibold flex items-center gap-2">
+                <Label
+                  htmlFor="carbs"
+                  className="text-base font-semibold flex items-center gap-2"
+                >
                   <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                   Carbs
                 </Label>
@@ -227,18 +288,23 @@ export function MealGeneratorForm() {
                     g/day
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground">100-500g recommended</p>
+                <p className="text-xs text-muted-foreground">
+                  100-500g recommended
+                </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="fat" className="text-base font-semibold flex items-center gap-2">
+                <Label
+                  htmlFor="fat"
+                  className="text-base font-semibold flex items-center gap-2"
+                >
                   <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                   Fat
                 </Label>
                 <div className="relative">
                   <Input
                     id="fat"
-                    type="number"
+                    // type="number"
                     value={dailyF}
                     onChange={(e) => setDailyF(parseInt(e.target.value) || 60)}
                     min="20"
@@ -250,15 +316,43 @@ export function MealGeneratorForm() {
                     g/day
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground">20-150g recommended</p>
+                <p className="text-xs text-muted-foreground">
+                  20-150g recommended
+                </p>
               </div>
             </div>
 
             <Separator />
+            <div className="space-y-2 mt-2">
+              <Label
+                htmlFor="kcal"
+                className="text-base font-semibold flex items-center gap-2"
+              >
+                <Sparkles className="w-3 h-3 text-green-500" />
+                Calories (auto)
+              </Label>
+              <div className="relative border-2 border-green-600 rounded">
+                <Input
+                  id="kcal"
+                  value={dailykcal}
+                  readOnly
+                  disabled
+                  className="text-lg h-12 pr-12 font-bold"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  kcal/day
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Daily Caloric Intake: {dailykcal} kcal
+              </p>
+            </div>
 
             {/* Diet Preferences */}
             <div className="space-y-3">
-              <Label className="text-base font-semibold">Diet Preferences</Label>
+              <Label className="text-base font-semibold">
+                Diet Preferences
+              </Label>
               <div className="flex gap-3 flex-wrap">
                 {DIET_TAGS.map((tag) => (
                   <label
@@ -277,7 +371,9 @@ export function MealGeneratorForm() {
                       checked={dietTags.includes(tag)}
                       onChange={(e) =>
                         setDietTags((prev) =>
-                          e.target.checked ? [...prev, tag] : prev.filter((t) => t !== tag)
+                          e.target.checked
+                            ? [...prev, tag]
+                            : prev.filter((t) => t !== tag)
                         )
                       }
                       className="sr-only"
@@ -305,7 +401,9 @@ export function MealGeneratorForm() {
                       <SelectItem key={p.value} value={p.value}>
                         <div className="flex flex-col items-start">
                           <span className="font-medium">{p.label}</span>
-                          <span className="text-xs text-muted-foreground">{p.desc}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {p.desc}
+                          </span>
                         </div>
                       </SelectItem>
                     ))}
@@ -326,9 +424,11 @@ export function MealGeneratorForm() {
                       <DialogHeader>
                         <DialogTitle>Variety Control</DialogTitle>
                         <DialogDescription>
-                          By default, the planner ensures each meal is unique across the week for maximum variety.
-                          Enable "Allow repeats" if you're okay with similar meals appearing multiple times - this makes
-                          it easier to hit your exact macro targets.
+                          By default, the planner ensures each meal is unique
+                          across the week for maximum variety. Enable "Allow
+                          repeats" if you're okay with similar meals appearing
+                          multiple times - this makes it easier to hit your
+                          exact macro targets.
                         </DialogDescription>
                       </DialogHeader>
                     </DialogContent>
@@ -340,10 +440,15 @@ export function MealGeneratorForm() {
                     checked={allowRepeats}
                     onCheckedChange={setAllowRepeats}
                   />
-                  <Label htmlFor="allowRepeats" className="cursor-pointer flex-1">
+                  <Label
+                    htmlFor="allowRepeats"
+                    className="cursor-pointer flex-1"
+                  >
                     Allow meal repeats
                     <span className="block text-xs text-muted-foreground mt-0.5">
-                      {allowRepeats ? "Easier to hit targets" : "Maximum variety"}
+                      {allowRepeats
+                        ? "Easier to hit targets"
+                        : "Maximum variety"}
                     </span>
                   </Label>
                 </div>
@@ -392,7 +497,9 @@ export function MealGeneratorForm() {
           {result.error ? (
             <Card className="border-destructive">
               <CardHeader>
-                <CardTitle className="text-destructive">Generation Error</CardTitle>
+                <CardTitle className="text-destructive">
+                  Generation Error
+                </CardTitle>
                 <CardDescription>{result.error}</CardDescription>
               </CardHeader>
               {result.debug && (
@@ -412,7 +519,9 @@ export function MealGeneratorForm() {
                     <TrendingUp className="w-5 h-5" />
                     Weekly Overview
                   </CardTitle>
-                  <CardDescription>Your total nutrition for the week</CardDescription>
+                  <CardDescription>
+                    Your total nutrition for the week
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -421,7 +530,9 @@ export function MealGeneratorForm() {
                         <div className="w-3 h-3 rounded-full bg-red-500"></div>
                         <p className="text-sm text-muted-foreground">Protein</p>
                       </div>
-                      <p className="text-3xl font-bold">{result.weeklyTotals.P.toFixed(0)}</p>
+                      <p className="text-3xl font-bold">
+                        {result.weeklyTotals.P.toFixed(0)}
+                      </p>
                       <p className="text-xs text-muted-foreground">grams</p>
                     </div>
                     <div className="text-center p-4 rounded-lg bg-background/60">
@@ -429,7 +540,9 @@ export function MealGeneratorForm() {
                         <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                         <p className="text-sm text-muted-foreground">Carbs</p>
                       </div>
-                      <p className="text-3xl font-bold">{result.weeklyTotals.C.toFixed(0)}</p>
+                      <p className="text-3xl font-bold">
+                        {result.weeklyTotals.C.toFixed(0)}
+                      </p>
                       <p className="text-xs text-muted-foreground">grams</p>
                     </div>
                     <div className="text-center p-4 rounded-lg bg-background/60">
@@ -437,15 +550,21 @@ export function MealGeneratorForm() {
                         <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                         <p className="text-sm text-muted-foreground">Fat</p>
                       </div>
-                      <p className="text-3xl font-bold">{result.weeklyTotals.F.toFixed(0)}</p>
+                      <p className="text-3xl font-bold">
+                        {result.weeklyTotals.F.toFixed(0)}
+                      </p>
                       <p className="text-xs text-muted-foreground">grams</p>
                     </div>
                     <div className="text-center p-4 rounded-lg bg-background/60">
                       <div className="flex items-center justify-center gap-2 mb-2">
                         <Sparkles className="w-3 h-3 text-green-500" />
-                        <p className="text-sm text-muted-foreground">Calories</p>
+                        <p className="text-sm text-muted-foreground">
+                          Calories
+                        </p>
                       </div>
-                      <p className="text-3xl font-bold">{result.weeklyTotals.kcal.toFixed(0)}</p>
+                      <p className="text-3xl font-bold">
+                        {result.weeklyTotals.kcal.toFixed(0)}
+                      </p>
                       <p className="text-xs text-muted-foreground">kcal</p>
                     </div>
                   </div>
@@ -457,7 +576,9 @@ export function MealGeneratorForm() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Debug logs</CardTitle>
-                    <CardDescription>Scoring details to help fine-tune the algorithm</CardDescription>
+                    <CardDescription>
+                      Scoring details to help fine-tune the algorithm
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <ScrollArea className="h-[300px]">
@@ -475,7 +596,9 @@ export function MealGeneratorForm() {
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle>Your 7-Day Meal Plan</CardTitle>
-                      <CardDescription>Click on each day to view and edit meals</CardDescription>
+                      <CardDescription>
+                        Click on each day to view and edit meals
+                      </CardDescription>
                     </div>
                     <Button onClick={savePlan} size="lg" className="gap-2">
                       <Save className="w-4 h-4" />
@@ -484,49 +607,84 @@ export function MealGeneratorForm() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <Tabs value={activeDay} onValueChange={setActiveDay} className="w-full">
+                  <Tabs
+                    value={activeDay}
+                    onValueChange={setActiveDay}
+                    className="w-full"
+                  >
                     <TabsList className="w-full justify-start overflow-x-auto">
                       {plan.days.map((d: any) => (
-                        <TabsTrigger key={d.day} value={`day-${d.day}`} className="flex-1 min-w-[100px]">
+                        <TabsTrigger
+                          key={d.day}
+                          value={`day-${d.day}`}
+                          className="flex-1 min-w-[100px]"
+                        >
                           Day {d.day}
                         </TabsTrigger>
                       ))}
                     </TabsList>
 
                     {plan.days.map((d: any, idx: number) => (
-                      <TabsContent key={d.day} value={`day-${d.day}`} className="mt-6">
+                      <TabsContent
+                        key={d.day}
+                        value={`day-${d.day}`}
+                        className="mt-6"
+                      >
                         {/* Day Header with Stats */}
                         <div className="mb-6 p-4 rounded-lg bg-muted/50">
                           <div className="flex items-center justify-between mb-3">
-                            <h3 className="text-xl font-semibold">Day {d.day} Nutrition</h3>
+                            <h3 className="text-xl font-semibold">
+                              Day {d.day} Nutrition
+                            </h3>
                             <Badge variant="secondary" className="text-xs">
                               Quality Score: {d.info.quality.toFixed(2)}
                             </Badge>
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                             <div>
-                              <p className="text-muted-foreground mb-1">Protein</p>
+                              <p className="text-muted-foreground mb-1">
+                                Protein
+                              </p>
                               <div className="flex items-center gap-2">
-                                <p className="font-bold text-lg">{d.totals.P.toFixed(0)}g</p>
-                                <MacroDelta target={result.inputs.dailyP} actual={d.totals.P} />
+                                <p className="font-bold text-lg">
+                                  {d.totals.P.toFixed(0)}g
+                                </p>
+                                <MacroDelta
+                                  target={result.inputs.dailyP}
+                                  actual={d.totals.P}
+                                />
                               </div>
                             </div>
                             <div>
-                              <p className="text-muted-foreground mb-1">Carbs</p>
+                              <p className="text-muted-foreground mb-1">
+                                Carbs
+                              </p>
                               <div className="flex items-center gap-2">
-                                <p className="font-bold text-lg">{d.totals.C.toFixed(0)}g</p>
-                                <MacroDelta target={result.inputs.dailyC} actual={d.totals.C} />
+                                <p className="font-bold text-lg">
+                                  {d.totals.C.toFixed(0)}g
+                                </p>
+                                <MacroDelta
+                                  target={result.inputs.dailyC}
+                                  actual={d.totals.C}
+                                />
                               </div>
                             </div>
                             <div>
                               <p className="text-muted-foreground mb-1">Fat</p>
                               <div className="flex items-center gap-2">
-                                <p className="font-bold text-lg">{d.totals.F.toFixed(0)}g</p>
-                                <MacroDelta target={result.inputs.dailyF} actual={d.totals.F} />
+                                <p className="font-bold text-lg">
+                                  {d.totals.F.toFixed(0)}g
+                                </p>
+                                <MacroDelta
+                                  target={result.inputs.dailyF}
+                                  actual={d.totals.F}
+                                />
                               </div>
                             </div>
                             <div>
-                              <p className="text-muted-foreground mb-1">Calories</p>
+                              <p className="text-muted-foreground mb-1">
+                                Calories
+                              </p>
                               <p className="font-bold text-lg text-green-600 dark:text-green-400">
                                 {d.totals.kcal.toFixed(0)} kcal
                               </p>
@@ -537,7 +695,8 @@ export function MealGeneratorForm() {
                         {/* Meals Grid */}
                         <div className="grid md:grid-cols-3 gap-6">
                           {["breakfast", "lunch", "dinner"].map((slot) => {
-                            const meal = d.meals[slot as "breakfast" | "lunch" | "dinner"];
+                            const meal =
+                              d.meals[slot as "breakfast" | "lunch" | "dinner"];
                             if (!meal) return null;
                             const names: string[] = meal.names || [];
 
@@ -559,7 +718,8 @@ export function MealGeneratorForm() {
                                   <ScrollArea className="h-[280px] pr-3">
                                     <div className="space-y-2">
                                       {names.map((nm, i) => {
-                                        const ing = ingByName[(nm || "").toLowerCase()];
+                                        const ing =
+                                          ingByName[(nm || "").toLowerCase()];
                                         return (
                                           <div
                                             key={`${nm}-${i}`}
@@ -567,7 +727,9 @@ export function MealGeneratorForm() {
                                           >
                                             <div className="flex items-start justify-between gap-2">
                                               <div className="flex-1 min-w-0">
-                                                <p className="font-medium text-sm mb-1 truncate">{nm}</p>
+                                                <p className="font-medium text-sm mb-1 truncate">
+                                                  {nm}
+                                                </p>
                                                 {ing && (
                                                   <div className="flex flex-wrap gap-1">
                                                     <Badge
@@ -576,24 +738,28 @@ export function MealGeneratorForm() {
                                                     >
                                                       {ing.role}
                                                     </Badge>
-                                                    {ing.cuisine?.slice(0, 1).map((c: string) => (
-                                                      <Badge
-                                                        key={c}
-                                                        variant="outline"
-                                                        className="text-[10px] px-1.5 py-0"
-                                                      >
-                                                        {c}
-                                                      </Badge>
-                                                    ))}
-                                                    {ing.dietTags?.slice(0, 1).map((t: string) => (
-                                                      <Badge
-                                                        key={t}
-                                                        variant="default"
-                                                        className="text-[10px] px-1.5 py-0 bg-green-500"
-                                                      >
-                                                        {t}
-                                                      </Badge>
-                                                    ))}
+                                                    {ing.cuisine
+                                                      ?.slice(0, 1)
+                                                      .map((c: string) => (
+                                                        <Badge
+                                                          key={c}
+                                                          variant="outline"
+                                                          className="text-[10px] px-1.5 py-0"
+                                                        >
+                                                          {c}
+                                                        </Badge>
+                                                      ))}
+                                                    {ing.dietTags
+                                                      ?.slice(0, 1)
+                                                      .map((t: string) => (
+                                                        <Badge
+                                                          key={t}
+                                                          variant="default"
+                                                          className="text-[10px] px-1.5 py-0 bg-green-500"
+                                                        >
+                                                          {t}
+                                                        </Badge>
+                                                      ))}
                                                   </div>
                                                 )}
                                               </div>
@@ -602,11 +768,14 @@ export function MealGeneratorForm() {
                                                 variant="ghost"
                                                 className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                                                 onClick={() => {
-                                                  const next = structuredClone(plan);
-                                                  const arr = next.days[idx].meals[slot]
+                                                  const next =
+                                                    structuredClone(plan);
+                                                  const arr = next.days[idx]
+                                                    .meals[slot]
                                                     .names as string[];
                                                   arr.splice(i, 1);
-                                                  const rebuilt = computeMealFromNames(arr);
+                                                  const rebuilt =
+                                                    computeMealFromNames(arr);
                                                   next.days[idx].meals[slot] = {
                                                     names: arr,
                                                     roles: rebuilt.roles,
@@ -614,7 +783,9 @@ export function MealGeneratorForm() {
                                                     macros: rebuilt.macros,
                                                     price: rebuilt.price,
                                                   };
-                                                  recomputeDayTotals(next.days[idx]);
+                                                  recomputeDayTotals(
+                                                    next.days[idx]
+                                                  );
                                                   setPlan(next);
                                                 }}
                                               >
@@ -632,7 +803,8 @@ export function MealGeneratorForm() {
                                     ingredients={ingredients}
                                     onAdd={(ingName) => {
                                       const next = structuredClone(plan);
-                                      const arr = next.days[idx].meals[slot].names as string[];
+                                      const arr = next.days[idx].meals[slot]
+                                        .names as string[];
                                       arr.push(ingName);
                                       const rebuilt = computeMealFromNames(arr);
                                       next.days[idx].meals[slot] = {
@@ -653,29 +825,47 @@ export function MealGeneratorForm() {
                                   <div className="grid grid-cols-2 gap-2 text-xs">
                                     <div className="flex items-center gap-2">
                                       <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                                      <span className="text-muted-foreground">P:</span>
+                                      <span className="text-muted-foreground">
+                                        P:
+                                      </span>
                                       <span className="font-semibold">
-                                        {(d.meals[slot].macros?.P || 0).toFixed(0)}g
+                                        {(d.meals[slot].macros?.P || 0).toFixed(
+                                          0
+                                        )}
+                                        g
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                                      <span className="text-muted-foreground">C:</span>
+                                      <span className="text-muted-foreground">
+                                        C:
+                                      </span>
                                       <span className="font-semibold">
-                                        {(d.meals[slot].macros?.C || 0).toFixed(0)}g
+                                        {(d.meals[slot].macros?.C || 0).toFixed(
+                                          0
+                                        )}
+                                        g
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                      <span className="text-muted-foreground">F:</span>
+                                      <span className="text-muted-foreground">
+                                        F:
+                                      </span>
                                       <span className="font-semibold">
-                                        {(d.meals[slot].macros?.F || 0).toFixed(0)}g
+                                        {(d.meals[slot].macros?.F || 0).toFixed(
+                                          0
+                                        )}
+                                        g
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <Sparkles className="w-2 h-2 text-green-500" />
                                       <span className="font-semibold text-green-600 dark:text-green-400">
-                                        {(d.meals[slot].macros?.kcal || 0).toFixed(0)} kcal
+                                        {(
+                                          d.meals[slot].macros?.kcal || 0
+                                        ).toFixed(0)}{" "}
+                                        kcal
                                       </span>
                                     </div>
                                   </div>
@@ -703,20 +893,32 @@ function MacroDelta({ target, actual }: { target: number; actual: number }) {
   const percentOff = Math.abs(delta / target) * 100;
 
   if (percentOff < 5) {
-    return <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-green-500/20 text-green-700 dark:text-green-400">On target</Badge>;
+    return (
+      <Badge
+        variant="secondary"
+        className="text-[10px] px-1.5 py-0 bg-green-500/20 text-green-700 dark:text-green-400"
+      >
+        On target
+      </Badge>
+    );
   }
 
   if (delta > 0) {
     return (
-      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-orange-500/20 text-orange-700 dark:text-orange-400 flex items-center gap-0.5">
-        <TrendingUp className="w-3 h-3" />
-        +{delta.toFixed(0)}
+      <Badge
+        variant="secondary"
+        className="text-[10px] px-1.5 py-0 bg-orange-500/20 text-orange-700 dark:text-orange-400 flex items-center gap-0.5"
+      >
+        <TrendingUp className="w-3 h-3" />+{delta.toFixed(0)}
       </Badge>
     );
   }
 
   return (
-    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-blue-500/20 text-blue-700 dark:text-blue-400 flex items-center gap-0.5">
+    <Badge
+      variant="secondary"
+      className="text-[10px] px-1.5 py-0 bg-blue-500/20 text-blue-700 dark:text-blue-400 flex items-center gap-0.5"
+    >
       <TrendingDown className="w-3 h-3" />
       {delta.toFixed(0)}
     </Badge>
@@ -752,7 +954,9 @@ function AddIngredientDialog({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Add Ingredient to Meal</DialogTitle>
-          <DialogDescription>Search and select an ingredient to add</DialogDescription>
+          <DialogDescription>
+            Search and select an ingredient to add
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <Input
@@ -777,11 +981,18 @@ function AddIngredientDialog({
                 >
                   <span className="font-medium text-sm mb-1">{i.name}</span>
                   <div className="flex flex-wrap gap-1">
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] px-1.5 py-0"
+                    >
                       {i.role}
                     </Badge>
                     {i.cuisine?.slice(0, 1).map((c: string) => (
-                      <Badge key={c} variant="outline" className="text-[10px] px-1.5 py-0">
+                      <Badge
+                        key={c}
+                        variant="outline"
+                        className="text-[10px] px-1.5 py-0"
+                      >
                         {c}
                       </Badge>
                     ))}
